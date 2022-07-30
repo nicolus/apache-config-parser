@@ -36,20 +36,16 @@ class Parser
     public function getApacheHosts(): array
     {
         $hosts = [];
-        $matches = [];
         preg_match_all('~(?:^\s*|\n\s*)<VirtualHost[^>]*>(.*?)</VirtualHost>~is', $this->config, $matches);
 
         if (!empty($matches[1])) {
-            foreach ($matches[1] as $v_host) {
+            foreach ($matches[1] as $vhost) {
                 $server_name_match = [];
-                preg_match('~(?:^\s*|\n\s*)ServerName\s+(?:"|)([^"\s:]*)(?:"|)~i', $v_host, $server_name_match);
+                preg_match('~(?:^\s*|\n\s*)ServerName\s+(?:"|)([^"\s:]*)(?:"|)~i', $vhost, $server_name_match);
 
                 if (!empty($server_name_match[1])) {
-                    $doc_root_match = [];
-                    preg_match('~(?:^\s*|\n\s*)DocumentRoot\s+(?:"|)([^"\s]*)(?:"|)~i', $v_host, $doc_root_match);
-
-                    $aliases_match = [];
-                    preg_match_all('~(^\s*|\n\s*)ServerAlias\s+(?:"|)([^"\n]*)(?:"|)~i', $v_host, $aliases_match);
+                    preg_match('~(?:^\s*|\n\s*)DocumentRoot\s+(?:"|)([^"\s]*)(?:"|)~i', $vhost, $doc_root_match);
+                    preg_match_all('~(^\s*|\n\s*)ServerAlias\s+(?:"|)([^"\n]*)(?:"|)~i', $vhost, $aliases_match);
 
                     $aliases = [];
                     foreach ($aliases_match[2] as $alias) {
@@ -75,13 +71,13 @@ class Parser
     /**
      * Looks for Include and includeOption directives in the config
      * and recursively replaces them with the contents of included files
-     * @param string $config_path
+     * @param string $filePath
      * @return string
      */
-    private function getFullConfig(string $config_path): string
+    private function getFullConfig(string $filePath): string
     {
-        $config_dir = dirname($config_path);
-        $config_text = file_get_contents($config_path);
+        $config_dir = dirname($filePath);
+        $config_text = file_get_contents($filePath);
 
         return preg_replace_callback(
             '~(^\s*Include(?:Optional)?\s+("|)([^"\n]*)("|)(\n|$))~Um',
@@ -93,101 +89,25 @@ class Parser
                     return $content;
                 }
 
-                $isDirectory = str_ends_with($include, '/');
-                $isAbsolutePath = str_starts_with($include, '/');
-                $hasWildCard = str_contains($include, '*');
-
-                if ($isAbsolutePath && $isDirectory) {
-                    $configs = $this->getConfigs($include);
-                    foreach ($configs as $config_path) {
-                        $content .= $this->getFullConfig($config_path);
-                    }
-                    return $content;
+                // Relative path => turn it into an absolute path
+                if (!str_starts_with($include, '/')) {
+                    $include = $config_dir . '/' . $include;
                 }
 
-                if ($isAbsolutePath) {
-                    if ($hasWildCard) {
-                        $sub_dir = $this->getBasePath($include);
-
-                        $configs = $this->getConfigs($sub_dir);
-                        foreach ($configs as $config_path) {
-                            if ($this->pathMatchesRegex($include, $config_path)) {
-                                $content .= $this->getFullConfig($config_path);
-                            }
-                        }
-
-                        return $content;
-                    }
-
-                    return $this->getFullConfig($include);
+                // Directory => Add a final * to glob everything
+                if (str_ends_with($include, '/')) {
+                    $include .= '*';
                 }
 
-                if ($isDirectory) {
-                    $configs = $this->getConfigs($config_dir . '/' . substr($include, 0, -1));
-                    foreach ($configs as $config_path) {
-                        $content .= $this->getFullConfig($config_path);
-                    }
+                $files = array_filter(glob($include), 'is_file');
 
-                    return $content;
+                foreach ($files as $filePath) {
+                    $content .= $this->getFullConfig($filePath);
                 }
 
-                // File with path from current directory
-                // Search for configs by regular expression
-                if ($hasWildCard) {
-                    $sub_dir = $this->getBasePath($include);
-
-                    $configs = $this->getConfigs($config_dir . '/' . $sub_dir);
-                    foreach ($configs as $config_path) {
-                        if ($this->pathMatchesRegex($include, $config_path)) {
-                            $content .= $this->getFullConfig($config_path);
-                        }
-                    }
-
-                    return $content;
-                }
-
-                return $this->getFullConfig($config_dir . '/' . $include);
+                return $content;
             },
             $config_text
         );
-    }
-
-
-    /**
-     * Get configuration files in a directory and in all nested directories
-     * @param string $dir_path
-     * @return RecursiveIteratorIterator<FilesystemIterator>
-     */
-    private function getConfigs(string $dir_path): RecursiveIteratorIterator
-    {
-        return new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($dir_path, FilesystemIterator::SKIP_DOTS | FilesystemIterator::CURRENT_AS_PATHNAME)
-        );
-    }
-
-
-    private function pathMatchesRegex(string $include, string $config_path): bool
-    {
-        $regex_include = str_replace(
-            ['~', '.', '*'],
-            ['\~', '\.', '.*'],
-            $include
-        );
-
-        return preg_match("~$regex_include$~U", $config_path);
-    }
-
-    /**
-     * @param mixed $include
-     * @return false|string
-     */
-    function getBasePath(mixed $include): string|false
-    {
-        $star_pos = strpos($include, '*');
-        $sub_dir = substr($include, 0, $star_pos);
-        $sub_dir = strrpos($sub_dir, '/');
-        $sub_dir = substr($include, 0, $sub_dir);
-        $sub_dir = realpath($sub_dir);
-        return $sub_dir;
     }
 }

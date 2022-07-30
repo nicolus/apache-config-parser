@@ -70,11 +70,18 @@ class ParseVhostTest extends TestCase {
         $this->assertHostsContain(['foo1.test', 'foo2.test'], $hosts);
     }
 
-    public function testLoadsDirectoriesWithRegex() {
+    public function testLoadsWithRegex() {
         $parser = new Parser(__DIR__ . '/fixtures/apacheregex.conf');
 
         $this->assertIsArray($hosts = $parser->getApacheHosts());
         $this->assertHostsContain(['foo1.com', 'default.com'], $hosts);
+    }
+
+    public function testLoadsDirectoriesWithRegex() {
+        $parser = new Parser(__DIR__ . '/fixtures/apacheregex2.conf');
+
+        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertHostsContain(['foo4.test', 'foo5.test'], $hosts);
     }
 
     public function testLoadsAbsoluteDirectoriesWithRegex() {
