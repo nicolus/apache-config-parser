@@ -1,0 +1,19 @@
+{
+    "name": "nicolus/apache-config-parser",
+    "description": "Easily get configured domains from an Apache2 config file",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "license": "GPLv2",
+    "autoload": {
+        "psr-4": {
+            "Nicolus\\ApacheConfigParser\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Nicolas Bailly"
+        }
+    ]
+}
