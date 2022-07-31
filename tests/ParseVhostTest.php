@@ -8,7 +8,7 @@ class ParseVhostTest extends TestCase {
     public function testRetrievesVhost() {
         $parser = new Parser(__DIR__ . '/fixtures/foo.test.conf');
 
-        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertIsArray($hosts = $parser->getHosts());
 
         $host = $hosts[0];
         $this->assertEquals('foo.test', $host->name);
@@ -24,7 +24,7 @@ class ParseVhostTest extends TestCase {
     public function testLoadsFiles() {
         $parser = new Parser(__DIR__ . '/fixtures/apache.conf');
 
-        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertIsArray($hosts = $parser->getHosts());
         $this->assertEquals('foo.test', $hosts[0]->name);
     }
 
@@ -38,7 +38,7 @@ class ParseVhostTest extends TestCase {
         file_put_contents(__DIR__ . '/fixtures/apacheabsolute.conf', $configContent);
         $parser = new Parser(__DIR__ . '/fixtures/apacheabsolute.conf');
 
-        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertIsArray($hosts = $parser->getHosts());
         $this->assertEquals('foo.test', $hosts[0]->name);
     }
 
@@ -46,7 +46,7 @@ class ParseVhostTest extends TestCase {
     {
         $parser = new Parser(__DIR__ . '/fixtures/apache2.conf');
 
-        $hosts = $parser->getApacheHosts();
+        $hosts = $parser->getHosts();
         $this->assertIsArray($hosts);
         $this->assertContainsOnlyInstancesOf(Host::class, $hosts);
         $this->assertHostsContain(['foo1.test', 'foo2.test'], $hosts);
@@ -64,23 +64,23 @@ class ParseVhostTest extends TestCase {
 
         $parser = new Parser(__DIR__ . '/fixtures/apache2absolute.conf');
 
-        $hosts = $parser->getApacheHosts();
+        $hosts = $parser->getHosts();
         $this->assertIsArray($hosts);
         $this->assertContainsOnlyInstancesOf(Host::class, $hosts);
-        $this->assertHostsContain(['foo1.test', 'foo2.test'], $hosts);
+        $this->assertHostsContain(['foo1.test', 'foo2.test', 'foo4.test'], $hosts);
     }
 
     public function testLoadsWithRegex() {
         $parser = new Parser(__DIR__ . '/fixtures/apacheregex.conf');
 
-        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertIsArray($hosts = $parser->getHosts());
         $this->assertHostsContain(['foo1.com', 'default.com'], $hosts);
     }
 
     public function testLoadsDirectoriesWithRegex() {
         $parser = new Parser(__DIR__ . '/fixtures/apacheregex2.conf');
 
-        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertIsArray($hosts = $parser->getHosts());
         $this->assertHostsContain(['foo4.test', 'foo5.test'], $hosts);
     }
 
@@ -95,7 +95,7 @@ class ParseVhostTest extends TestCase {
 
         $parser = new Parser(__DIR__ . '/fixtures/apacheregexabsolute.conf');
 
-        $this->assertIsArray($hosts = $parser->getApacheHosts());
+        $this->assertIsArray($hosts = $parser->getHosts());
         $this->assertHostsContain(['foo1.com', 'default.com'], $hosts);
     }
 

@@ -2,41 +2,26 @@
 
 namespace Nicolus\ApacheConfigParser;
 
-use Exception;
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use RuntimeException;
-
 class Parser
 {
-
-    /**
-     * @var string
-     */
-    private string $config;
-
-
-    public function __construct(string $configFilePath)
+    public function __construct(private readonly string $configPath)
     {
-        if (!file_exists($configFilePath)) {
-            throw new RuntimeException("Apche configuration file does not exist ($configFilePath)");
+        if (!file_exists($configPath)) {
+            throw new \RuntimeException("Apche configuration file or directory does not exist ($configPath)");
         }
-        if (!is_readable($configFilePath)) {
-            throw new RuntimeException("Apache configuration file is not readable ($configFilePath)");
+        if (!is_readable($configPath)) {
+            throw new \RuntimeException("Apche configuration file or directory is not readable ($configPath)");
         }
-
-        $this->config = $this->getFullConfig($configFilePath);
     }
 
     /**
      * @return array<Host>
-     * @throws Exception
      */
-    public function getApacheHosts(): array
+    public function getHosts(): array
     {
         $hosts = [];
-        preg_match_all('~(?:^\s*|\n\s*)<VirtualHost[^>]*>(.*?)</VirtualHost>~is', $this->config, $matches);
+        $config = $this->getFullConfig($this->configPath);
+        preg_match_all('~(?:^\s*|\n\s*)<VirtualHost[^>]*>(.*?)</VirtualHost>~is', $config, $matches);
 
         if (!empty($matches[1])) {
             foreach ($matches[1] as $vhost) {
@@ -71,8 +56,9 @@ class Parser
     /**
      * Looks for Include and includeOption directives in the config
      * and recursively replaces them with the contents of included files
+     *
      * @param string $filePath
-     * @return string
+     * @return string the fully concatenated Apache config
      */
     private function getFullConfig(string $filePath): string
     {
@@ -94,12 +80,12 @@ class Parser
                     $include = $config_dir . '/' . $include;
                 }
 
-                // Directory => Add a final * to glob everything
                 if (str_ends_with($include, '/')) {
-                    $include .= '*';
+                    $files = $this->getFilesRecursive($include);
+                } else {
+                    // Use glob which kinda works like Apache's '*' syntax, and only keep files (not directories)
+                    $files = array_filter(glob($include), 'is_file');
                 }
-
-                $files = array_filter(glob($include), 'is_file');
 
                 foreach ($files as $filePath) {
                     $content .= $this->getFullConfig($filePath);
@@ -110,4 +96,18 @@ class Parser
             $config_text
         );
     }
+
+    /**
+     * Get all files in a directory and in all nested directories
+     *
+     * @param string $path
+     * @return \RecursiveIteratorIterator
+     */
+    private function getFilesRecursive(string $path): \RecursiveIteratorIterator
+    {
+        return new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::CURRENT_AS_PATHNAME)
+        );
+    }
 }
+
