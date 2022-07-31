@@ -5,6 +5,15 @@ use Nicolus\ApacheConfigParser\Parser;
 use PHPUnit\Framework\TestCase;
 
 class ParseVhostTest extends TestCase {
+    public function setUp(): void
+    {
+        parent::setUp();
+        // Create an empty dir because we can't commit it via git :
+        if (!file_exists(__DIR__ . '/fixtures/emptydir')) {
+            mkdir(__DIR__ . '/fixtures/emptydir');
+        }
+    }
+
     public function testRetrievesVhost() {
         $parser = new Parser(__DIR__ . '/fixtures/foo.test.conf');
 
