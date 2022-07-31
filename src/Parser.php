@@ -21,19 +21,19 @@ class Parser
     {
         $hosts = [];
         $config = $this->getFullConfig($this->configPath);
-        preg_match_all('~(?:^\s*|\n\s*)<VirtualHost[^>]*>(.*?)</VirtualHost>~is', $config, $matches);
+        preg_match_all('~(?:^\s*|\n\s*)<VirtualHost[^>:]*(?::([^>]*))?>(.*?)</VirtualHost>~is', $config, $matches);
 
-        if (!empty($matches[1])) {
-            foreach ($matches[1] as $vhost) {
-                $server_name_match = [];
+        $ports = $matches[1];
+        if (!empty($matches[2])) {
+            foreach ($matches[2] as $key => $vhost) {
                 preg_match('~(?:^\s*|\n\s*)ServerName\s+(?:"|)([^"\s:]*)(?:"|)~i', $vhost, $server_name_match);
 
                 if (!empty($server_name_match[1])) {
                     preg_match('~(?:^\s*|\n\s*)DocumentRoot\s+(?:"|)([^"\s]*)(?:"|)~i', $vhost, $doc_root_match);
-                    preg_match_all('~(^\s*|\n\s*)ServerAlias\s+(?:"|)([^"\n]*)(?:"|)~i', $vhost, $aliases_match);
+                    preg_match_all('~(?:^\s*|\n\s*)ServerAlias\s+(?:"|)([^"\n]*)(?:"|)~i', $vhost, $aliases_match);
 
                     $aliases = [];
-                    foreach ($aliases_match[2] as $alias) {
+                    foreach ($aliases_match[1] as $alias) {
                         $split_aliases = preg_split('~\s+~', $alias);
                         foreach ($split_aliases as $split_alias) {
                             $aliases[] = $split_alias;
@@ -42,6 +42,7 @@ class Parser
 
                     $hosts[] = new Host(
                         $server_name_match[1],
+                        $ports[$key],
                         $doc_root_match[1] ?? null,
                         $aliases
                     );

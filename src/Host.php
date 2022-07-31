@@ -6,6 +6,7 @@ class Host
 {
     public function __construct(
         public readonly string $name,
+        public readonly string $port,
         public readonly ?string $root,
         public readonly array $aliases = []
     )

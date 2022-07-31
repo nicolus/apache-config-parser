@@ -13,6 +13,7 @@ class ParseVhostTest extends TestCase {
         $host = $hosts[0];
         $this->assertEquals('foo.test', $host->name);
         $this->assertEquals('/var/www/foo/public/', $host->root);
+        $this->assertEquals('80', $host->port);
 
         $aliases = $host->aliases;
         $this->assertIsArray($aliases);
