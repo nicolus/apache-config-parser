@@ -42,7 +42,7 @@ class Parser
 
                     $hosts[] = new Host(
                         $server_name_match[1],
-                        $doc_root_match[1],
+                        $doc_root_match[1] ?? null,
                         $aliases
                     );
                 }
